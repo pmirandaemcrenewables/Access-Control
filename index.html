@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Jobsite Access Control</title>
+  <!-- QR live streaming engine -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    body {
+      background: #eef2f6;
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+    }
+    .wrapper {
+      width: 100%;
+      max-width: 560px;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .top-bar {
+      background: #1e293b;
+      color: #ffffff;
+      padding: 16px;
+      text-align: center;
+    }
+    .top-bar h1 {
+      font-size: 1.15rem;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .date-badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.15);
+      color: #f8fafc;
+      font-size: 0.85rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .nav-tabs {
+      display: flex;
+      background: #f1f5f9;
+      border-bottom: 2px solid #cbd5e1;
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 12px 2px;
+      border: none;
+      background: none;
+      font-size: 0.74rem;
+      font-weight: bold;
+      color: #64748b;
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .nav-btn.active {
+      color: #0f172a;
+      background: #ffffff;
+      border-bottom: 3px solid #0284c7;
+    }
+    .content-box {
+      padding: 16px;
+    }
+    .alert-box {
+      padding: 12px 14px;
+      border-radius: 6px;
+      font-size: 0.92rem;
+      font-weight: bold;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .alert-box.ok {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1.5px solid #86efac;
+      display: block;
+    }
+    .alert-box.bad {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1.5px solid #fca5a5;
+      display: block;
+    }
+    .scanner-card {
+      background: #0f172a;
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .btn-toggle-cam {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      padding: 11px 16px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-toggle-cam.active {
+      background: #dc2626;
+    }
+    #reader-container {
+      margin-top: 10px;
+      border-radius: 6px;
+      overflow: hidden;
+      display: none;
+      background: #000000;
+    }
+    #qr-reader {
+      width: 100% !important;
+      border: none !important;
+    }
+    #qr-reader__scan_region video {
+      border-radius: 6px;
+      object-fit: cover;
+    }
+    .visitor-notice-box {
+      background: #fdf4ff;
+      border: 1.5px dashed #a855f7;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      margin-bottom: 16px;
+      font-size: 0.86rem;
+      color: #7e22ce;
+      line-height: 1.4;
+    }
+    .field {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #334155;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    input[type="text"], input[type="date"] {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #94a3b8;
+      border-radius: 6px;
+      font-size: 1rem;
+      outline: none;
+    }
+    input[type="text"]:focus, input[type="date"]:focus {
+      border-color: #0284c7;
+    }
+    .search-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #0284c7;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      outline: none;
+      margin-bottom: 12px;
+      background: #f8fafc;
+    }
+    .search-input:focus {
+      background: #ffffff;
+    }
+    .btn-action {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-in {
+      background: #16a34a;
+      color: #ffffff;
+    }
+    .btn-out {
+      background: #dc2626;
+      color: #ffffff;
+      margin-top: 10px;
+    }
+    .btn-primary {
+      background: #0284c7;
+      color: #ffffff;
+    }
+    .btn-purple {
+      background: #7e22ce;
+      color: #ffffff;
+    }
+    .btn-purple:active {
+      background: #6b21a8;
+    }
+    .btn-export {
+      background: #16a34a;
+      color: #ffffff;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn-export:active {
+      background: #15803d;
+    }
+    .btn-autoclose {
+      background: #d97706;
+      color: #ffffff;
+      border: none;
+      padding: 11px;
+      border-radius: 6px;
+      font-size: 0.86rem;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .btn-autoclose:active {
+      background: #b45309;
+    }
+    .btn-clear {
+      background: #94a3b8;
+      color: #ffffff;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .btn-preset {
+      background: #e2e8f0;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-preset:hover, .btn-preset:active {
+      background: #cbd5e1;
+      color: #0f172a;
+    }
+    .worker-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #f8fafc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .worker-info {
+      flex: 1;
+    }
+    .worker-info h3 {
+      font-size: 0.95rem;
+      color: #0f172a;
+    }
+    .worker-info p {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-top: 3px;
+    }
+    .btn-select-out {
+      background: #ef4444;
+      color: #ffffff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-view-sign {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 6px;
+      display: inline-block;
+    }
+    #signatureModal {
+      display: none;
+      margin-top: 15px;
+      padding: 14px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+    }
+    .canvas-container {
+      margin: 10px 0;
+      background: #ffffff;
+      border: 2px dashed #64748b;
+      border-radius: 6px;
+      position: relative;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 180px;
+      touch-action: none;
+    }
+
+    /* BADGES TAB */
+    .badge-form-box {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .badge-item-card {
+      border: 2px solid #0f172a;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .badge-qr-box img {
+      width: 100px;
+      height: 100px;
+      display: block;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 2px;
+    }
+    .badge-details {
+      flex: 1;
+    }
+    .badge-details h3 {
+      font-size: 1rem;
+      color: #0f172a;
+      margin-bottom: 3px;
+    }
+    .badge-details p {
+      font-size: 0.85rem;
+      color: #334155;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-details span {
+      font-size: 0.72rem;
+      color: #64748b;
+      display: block;
+      margin-top: 4px;
+    }
+    .badge-actions-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .btn-print-single {
+      background: #0f172a;
+      color: #ffffff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-delete-badge {
+      background: #ef4444;
+      color: #ffffff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    /* HISTORY & VISITORS LOG */
+    .history-controls {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .date-range-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .date-subfield label {
+      font-size: 0.72rem;
+      color: #64748b;
+      margin-bottom: 3px;
+    }
+    .presets-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .kpi-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .kpi-box {
+      flex: 1;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }
+    .kpi-box h4 {
+      font-size: 0.72rem;
+      color: #64748b;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .kpi-box span {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #0f172a;
+    }
+    .history-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #ffffff;
+    }
+    .history-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+    .history-card-header h3 {
+      font-size: 0.95rem;
+      color: #0f172a;
+    }
+    .badge-status {
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .status-completed {
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .status-autoclosed {
+      background: #ffedd5;
+      color: #c2410c;
+    }
+    .status-onsite {
+      background: #fef3c7;
+      color: #b45309;
+    }
+    .status-visitor {
+      background: #f3e8ff;
+      color: #7e22ce;
+    }
+    .history-details {
+      font-size: 0.82rem;
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    /* MODALS */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.75);
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+    }
+    .modal-content {
+      background: #ffffff;
+      width: 100%;
+      max-width: 440px;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    .modal-content img {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      margin: 12px 0;
+      background: #fdfdfd;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printModalContent, #printModalContent * {
+        visibility: visible !important;
+      }
+      #printModalContent {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #ffffff;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="top-bar">
+    <h1>JOBSITE ACCESS CONTROL</h1>
+    <div id="badgeDateToday" class="date-badge"></div>
+    <script>
+      (function() {
+        var now = new Date();
+        var opt = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById("badgeDateToday").innerText = now.toLocaleDateString('en-US', opt);
+      })();
+    </script>
+  </div>
+
+  <div class="nav-tabs">
+    <button type="button" class="nav-btn active" id="tabBtn1" onclick="switchTab('in')">CHECK-IN</button>
+    <button type="button" class="nav-btn" id="tabBtn2" onclick="switchTab('out')">CHECK-OUT</button>
+    <button type="button" class="nav-btn" id="tabBtn3" onclick="switchTab('badges')">BADGES</button>
+    <button type="button" class="nav-btn" id="tabBtn4" onclick="switchTab('hist')">HISTORY</button>
+    <button type="button" class="nav-btn" id="tabBtn5" onclick="switchTab('visitors')">VISITORS</button>
+  </div>
+
+  <div class="content-box">
+    <div id="statusAlert" class="alert-box"></div>
+
+    <!-- TAB 1: CHECK-IN -->
+    <div id="viewCheckIn">
+      <!-- LIVE CAMERA SCANNER (IN-APP ZERO TABS) -->
+      <div class="scanner-card">
+        <button type="button" id="btnToggleCam" class="btn-toggle-cam" onclick="toggleLiveScanner()">
+          📷 OPEN LIVE QR SCANNER
+        </button>
+        <div id="reader-container">
+          <div id="qr-reader"></div>
+          <p style="font-size: 0.78rem; color: #94a3b8; margin-top: 8px;">Point camera at worker badge or helmet</p>
+        </div>
+      </div>
+
+      <form id="formCheckIn" onsubmit="submitCheckIn(event)">
+        <div class="field">
+          <label for="inputName">Full Name</label>
+          <input 
+            type="text" 
+            id="inputName" 
+            list="workerSuggestions" 
+            required 
+            placeholder="Type name (must be registered in BADGES)..." 
+            autocomplete="off"
+            oninput="handleWorkerSelection()"
+          >
+          <datalist id="workerSuggestions"></datalist>
+        </div>
+
+        <div class="field">
+          <label for="inputCompany">Company / Subcontractor</label>
+          <input 
+            type="text" 
+            id="inputCompany" 
+            list="companySuggestions" 
+            required 
+            placeholder="Type or select company..." 
+            autocomplete="off"
+          >
+          <datalist id="companySuggestions"></datalist>
+        </div>
+
+        <button type="submit" id="btnSaveIn" class="btn-action btn-in">CONFIRM CHECK-IN</button>
+      </form>
+    </div>
+
+    <!-- TAB 2: CHECK-OUT -->
+    <div id="viewCheckOut" style="display: none;">
+      <div id="listContainer">
+        <label for="inputSearchWorker">Search Workers On Site</label>
+        <input 
+          type="text" 
+          id="inputSearchWorker" 
+          class="search-input" 
+          placeholder="Filter by name or company..." 
+          oninput="filterWorkers()"
+          autocomplete="off"
+        >
+
+        <p id="workerCounter" style="font-size: 0.85rem; color: #475569; margin-bottom: 8px;">Loading personnel data...</p>
+        <div id="workerList"></div>
+      </div>
+
+      <!-- SIGNATURE PANEL -->
+      <div id="signatureModal">
+        <h3 id="targetWorkerName" style="font-size: 1rem; color: #0f172a;">-</h3>
+        <p id="targetWorkerDetails" style="font-size: 0.82rem; color: #475569; margin-top: 3px;">-</p>
+
+        <div class="canvas-container">
+          <canvas id="canvasSignature"></canvas>
+        </div>
+        <button type="button" class="btn-clear" onclick="clearCanvas()">Clear Signature</button>
+
+        <button type="button" id="btnConfirmCheckOut" class="btn-action btn-out" onclick="submitCheckOut()">CONFIRM CHECK-OUT & SIGNATURE</button>
+        <button type="button" class="btn-clear" style="width: 100%; margin-top: 6px; background: #64748b;" onclick="closeSignaturePanel()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- TAB 3: WORKER BADGES -->
+    <div id="viewBadges" style="display: none;">
+      <div class="badge-form-box">
+        <h3 style="font-size: 0.95rem; color: #0f172a; margin-bottom: 10px;">Create New Worker Badge</h3>
+        <form id="formNewBadge" onsubmit="submitNewBadge(event)">
+          <div class="field">
+            <label for="badgeInputName">Full Name</label>
+            <input type="text" id="badgeInputName" required placeholder="Worker full name" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="badgeInputCompany">Company / Subcontractor</label>
+            <input type="text" id="badgeInputCompany" required placeholder="Company name" autocomplete="off">
+          </div>
+          <button type="submit" id="btnCreateBadge" class="btn-action btn-primary">CREATE WORKER BADGE</button>
+        </form>
+      </div>
+
+      <h3 style="font-size: 0.95rem; color: #0f172a; margin-bottom: 10px;">Issued Badges (Authorized Directory)</h3>
+      <div id="badgesContainer">
+        <p style="text-align: center; color: #64748b; padding: 20px 0; font-size: 0.85rem;">Loading issued badges...</p>
+      </div>
+    </div>
+
+    <!-- TAB 4: HISTORY -->
+    <div id="viewHistory" style="display: none;">
+      <div class="history-controls">
+        <label style="margin-bottom: 6px;">Date Range Filter</label>
+        
+        <div class="date-range-grid">
+          <div class="date-subfield">
+            <label for="historyDateFrom">From Date</label>
+            <input type="date" id="historyDateFrom" onchange="filterHistory()">
+          </div>
+          <div class="date-subfield">
+            <label for="historyDateTo">To Date</label>
+            <input type="date" id="historyDateTo" onchange="filterHistory()">
+          </div>
+        </div>
+
+        <div class="presets-row">
+          <button type="button" class="btn-preset" onclick="setDatePreset('today')">Today</button>
+          <button type="button" class="btn-preset" onclick="setDatePreset('week')">This Week</button>
+          <button type="button" class="btn-preset" onclick="setDatePreset('month')">This Month</button>
+          <button type="button" class="btn-preset" onclick="setDatePreset('all')">All Dates</button>
+        </div>
+
+        <div class="field" style="margin-bottom: 6px;">
+          <label for="historyTextSearch">Filter by Subcontractor or Worker</label>
+          <input 
+            type="text" 
+            id="historyTextSearch" 
+            placeholder="Type company (e.g. EMC) or worker name..." 
+            oninput="filterHistory()"
+            autocomplete="off"
+          >
+        </div>
+
+        <button type="button" class="btn-export" onclick="exportFilteredHistoryToExcel()">
+          📊 EXPORT FILTERED TO EXCEL (CSV)
+        </button>
+
+        <button type="button" class="btn-autoclose" onclick="triggerManualAutoClose()">
+          ⚡ RUN AUTO-CLOSE NOW (CLOSE PENDING CHECK-OUTS)
+        </button>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-box">
+          <h4>Filtered Records</h4>
+          <span id="kpiCount">0</span>
+        </div>
+        <div class="kpi-box">
+          <h4>Total Hours</h4>
+          <span id="kpiHours">0.00 h</span>
+        </div>
+      </div>
+
+      <div id="historyRecordsContainer">
+        <p style="font-size: 0.85rem; color: #64748b; text-align: center; padding: 15px 0;">Loading history...</p>
+      </div>
+    </div>
+
+    <!-- TAB 5: VISITORS -->
+    <div id="viewVisitors" style="display: none;">
+      <div class="visitor-notice-box">
+        📋 <strong>Visitor Sign-In:</strong> For guests, suppliers, inspectors, and clients. No directory lookup or badges required.
+      </div>
+
+      <div class="badge-form-box">
+        <h3 style="font-size: 0.95rem; color: #0f172a; margin-bottom: 10px;">Register New Visitor</h3>
+        <form id="formNewVisitor" onsubmit="submitVisitorEntry(event)">
+          <div class="field">
+            <label for="visitorFullName">Full Name</label>
+            <input 
+              type="text" 
+              id="visitorFullName" 
+              required 
+              placeholder="Visitor first and last name..." 
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="field">
+            <label for="visitorCompany">Company / Institution</label>
+            <input 
+              type="text" 
+              id="visitorCompany" 
+              required 
+              placeholder="Company, supplier or client name..." 
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="field">
+            <label>Visitor Signature</label>
+            <div class="canvas-container">
+              <canvas id="canvasVisitorSignature"></canvas>
+            </div>
+            <button type="button" class="btn-clear" onclick="clearVisitorCanvas()">Clear Signature</button>
+          </div>
+
+          <button type="submit" id="btnSaveVisitor" class="btn-action btn-purple">CONFIRM VISITOR ENTRY</button>
+        </form>
+      </div>
+
+      <!-- VISITORS HISTORY -->
+      <div class="history-controls">
+        <label for="visitorFilterDate" style="margin-bottom: 6px;">Filter Visitor Log by Date</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="date" id="visitorFilterDate" onchange="fetchVisitorsHistory()">
+          <button type="button" class="btn-preset" onclick="setVisitorPreset('today')">Today</button>
+          <button type="button" class="btn-preset" onclick="setVisitorPreset('all')">All</button>
+        </div>
+
+        <button type="button" class="btn-export" style="margin-top: 10px;" onclick="exportVisitorsToExcel()">
+          📊 EXPORT VISITORS TO EXCEL (CSV)
+        </button>
+      </div>
+
+      <h3 style="font-size: 0.95rem; color: #0f172a; margin-bottom: 10px;">Visitor Records</h3>
+      <div id="visitorsListContainer">
+        <p style="font-size: 0.85rem; color: #64748b; text-align: center; padding: 15px 0;">Loading visitor log...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNATURE VIEWER MODAL -->
+<div id="signatureViewerModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 id="viewerWorkerName" style="font-size: 1rem; color: #0f172a;">Digital Signature</h3>
+    <p id="viewerDetails" style="font-size: 0.82rem; color: #475569; margin-top: 2px;">-</p>
+    <div id="viewerImageContainer">
+      <p style="padding: 20px 0; font-size: 0.9rem; color: #64748b;">Retrieving signature from Drive...</p>
+    </div>
+    <button type="button" class="btn-action" style="background: #1e293b; color: #ffffff;" onclick="closeSignatureViewer()">Close</button>
+  </div>
+</div>
+
+<!-- SINGLE BADGE PRINT MODAL -->
+<div id="badgePrintModal" class="modal-overlay">
+  <div class="modal-content" style="max-width: 320px;">
+    <div id="printModalContent">
+      <div style="border: 2.5px solid #000; border-radius: 8px; padding: 16px; text-align: center; background: #fff;">
+        <div style="font-size: 12px; font-weight: bold; letter-spacing: 1px; color: #0284c7; border-bottom: 2px solid #0284c7; padding-bottom: 4px; margin-bottom: 12px;">JOBSITE ACCESS BADGE</div>
+        <img id="printModalQr" src="" alt="QR" style="width: 170px; height: 170px; display: block; margin: 0 auto 10px auto;">
+        <div id="printModalName" style="font-size: 17px; font-weight: bold; color: #000;">-</div>
+        <div id="printModalCompany" style="font-size: 13px; font-weight: bold; color: #475569; text-transform: uppercase; margin-top: 3px;">-</div>
+        <div id="printModalId" style="font-size: 11px; color: #94a3b8; margin-top: 6px;">-</div>
+      </div>
+    </div>
+    <div class="no-print" style="margin-top: 14px; display: flex; gap: 8px;">
+      <button type="button" class="btn-action btn-primary" onclick="window.print()">🖨️ Print Now</button>
+      <button type="button" class="btn-action" style="background: #64748b; color: #fff;" onclick="closePrintModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // PEGA AQUÍ LA URL DE TU APPS SCRIPT (TERMINADA EN /exec)
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbymf6u597Ov10wYtSek66LHD7Yo9A4_GCtdAqUr4v2t7a0Y9SF3CvXkYNw_aIcfosHmwQ/exec";
+
+  // ASYNC API BRIDGE TO GOOGLE APPS SCRIPT
+  async function callGasApi(action, data = {}) {
+    try {
+      const response = await fetch(GAS_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: action, ...data })
+      });
+      return await response.json();
+    } catch (err) {
+      return { success: false, message: "Network connection error: " + err.toString() };
+    }
+  }
+
+  var registeredWorkers = [];
+  var currentWorkerList = [];
+  var selectedWorker = null;
+  var hasDrawnSignature = false;
+  var canvas = null;
+  var ctx = null;
+  var isDrawing = false;
+  var rawHistoryList = [];
+  var currentFilteredHistory = [];
+  var allIssuedBadges = [];
+
+  // VISITORS STATE
+  var visitorCanvas = null;
+  var visitorCtx = null;
+  var isVisitorDrawing = false;
+  var hasDrawnVisitorSignature = false;
+  var currentVisitorsList = [];
+
+  // LIVE SCANNER STATE
+  var html5QrCode = null;
+  var isScannerRunning = false;
+  var isProcessingScan = false;
+
+  function playSuccessBeep() {
+    try {
+      var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = 880;
+      gain.gain.value = 0.25;
+      osc.start();
+      setTimeout(function() {
+        osc.stop();
+        audioCtx.close();
+      }, 150);
+    } catch(e) {}
+  }
+
+  function playErrorBeep() {
+    try {
+      var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = "sawtooth";
+      osc.frequency.value = 220;
+      gain.gain.value = 0.3;
+      osc.start();
+      setTimeout(function() {
+        osc.stop();
+        audioCtx.close();
+      }, 300);
+    } catch(e) {}
+  }
+
+  function formatDateToISO(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + "-" + m + "-" + day;
+  }
+
+  function setDatePreset(type) {
+    var now = new Date();
+    var yyyy = now.getFullYear();
+
+    if (type === 'today') {
+      var todayStr = formatDateToISO(now);
+      document.getElementById("historyDateFrom").value = todayStr;
+      document.getElementById("historyDateTo").value = todayStr;
+    } else if (type === 'week') {
+      var day = now.getDay();
+      var diffToMonday = (day === 0 ? -6 : 1) - day;
+      var monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday);
+      var sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+
+      document.getElementById("historyDateFrom").value = formatDateToISO(monday);
+      document.getElementById("historyDateTo").value = formatDateToISO(sunday);
+    } else if (type === 'month') {
+      var firstDay = new Date(yyyy, now.getMonth(), 1);
+      var lastDay = new Date(yyyy, now.getMonth() + 1, 0);
+      document.getElementById("historyDateFrom").value = formatDateToISO(firstDay);
+      document.getElementById("historyDateTo").value = formatDateToISO(lastDay);
+    } else if (type === 'all') {
+      document.getElementById("historyDateFrom").value = "";
+      document.getElementById("historyDateTo").value = "";
+    }
+    filterHistory();
+  }
+
+  function setVisitorPreset(type) {
+    if (type === 'today') {
+      document.getElementById("visitorFilterDate").value = formatDateToISO(new Date());
+    } else if (type === 'all') {
+      document.getElementById("visitorFilterDate").value = "";
+    }
+    fetchVisitorsHistory();
+  }
+
+  /* WORKER CANVAS (CHECK-OUT) */
+  function initCanvas() {
+    canvas = document.getElementById("canvasSignature");
+    if (!canvas) return;
+    ctx = canvas.getContext("2d");
+
+    function getCoords(e) {
+      var rect = canvas.getBoundingClientRect();
+      var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    function startDraw(e) {
+      isDrawing = true;
+      hasDrawnSignature = true;
+      var p = getCoords(e);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      if (e.type.indexOf("touch") === 0) e.preventDefault();
+    }
+
+    function moveDraw(e) {
+      if (!isDrawing) return;
+      var p = getCoords(e);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      if (e.type.indexOf("touch") === 0) e.preventDefault();
+    }
+
+    function endDraw() {
+      isDrawing = false;
+    }
+
+    canvas.addEventListener("mousedown", startDraw);
+    canvas.addEventListener("mousemove", moveDraw);
+    canvas.addEventListener("mouseup", endDraw);
+    canvas.addEventListener("mouseleave", endDraw);
+
+    canvas.addEventListener("touchstart", startDraw, { passive: false });
+    canvas.addEventListener("touchmove", moveDraw, { passive: false });
+    canvas.addEventListener("touchend", endDraw);
+  }
+
+  function initializeCanvasDimensions() {
+    if (!canvas || !canvas.parentElement) return;
+    canvas.width = canvas.parentElement.clientWidth || 360;
+    canvas.height = 180;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#000000";
+    clearCanvas();
+  }
+
+  function clearCanvas() {
+    if (ctx && canvas) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasDrawnSignature = false;
+    }
+  }
+
+  /* VISITOR CANVAS */
+  function initVisitorCanvas() {
+    visitorCanvas = document.getElementById("canvasVisitorSignature");
+    if (!visitorCanvas) return;
+    visitorCtx = visitorCanvas.getContext("2d");
+
+    function getCoords(e) {
+      var rect = visitorCanvas.getBoundingClientRect();
+      var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - rect.left) * (visitorCanvas.width / rect.width),
+        y: (clientY - rect.top) * (visitorCanvas.height / rect.height)
+      };
+    }
+
+    function startDraw(e) {
+      isVisitorDrawing = true;
+      hasDrawnVisitorSignature = true;
+      var p = getCoords(e);
+      visitorCtx.beginPath();
+      visitorCtx.moveTo(p.x, p.y);
+      if (e.type.indexOf("touch") === 0) e.preventDefault();
+    }
+
+    function moveDraw(e) {
+      if (!isVisitorDrawing) return;
+      var p = getCoords(e);
+      visitorCtx.lineTo(p.x, p.y);
+      visitorCtx.stroke();
+      if (e.type.indexOf("touch") === 0) e.preventDefault();
+    }
+
+    function endDraw() {
+      isVisitorDrawing = false;
+    }
+
+    visitorCanvas.addEventListener("mousedown", startDraw);
+    visitorCanvas.addEventListener("mousemove", moveDraw);
+    visitorCanvas.addEventListener("mouseup", endDraw);
+    visitorCanvas.addEventListener("mouseleave", endDraw);
+
+    visitorCanvas.addEventListener("touchstart", startDraw, { passive: false });
+    visitorCanvas.addEventListener("touchmove", moveDraw, { passive: false });
+    visitorCanvas.addEventListener("touchend", endDraw);
+  }
+
+  function initializeVisitorCanvasDimensions() {
+    if (!visitorCanvas || !visitorCanvas.parentElement) return;
+    visitorCanvas.width = visitorCanvas.parentElement.clientWidth || 360;
+    visitorCanvas.height = 180;
+    visitorCtx.lineWidth = 2.5;
+    visitorCtx.lineCap = "round";
+    visitorCtx.strokeStyle = "#000000";
+    clearVisitorCanvas();
+  }
+
+  function clearVisitorCanvas() {
+    if (visitorCtx && visitorCanvas) {
+      visitorCtx.clearRect(0, 0, visitorCanvas.width, visitorCanvas.height);
+      hasDrawnVisitorSignature = false;
+    }
+  }
+
+  async function loadSuggestions() {
+    const response = await callGasApi("getExistingWorkers");
+    if (!response || !response.success) return;
+    registeredWorkers = response.workers || [];
+    
+    var workerDatalist = document.getElementById("workerSuggestions");
+    workerDatalist.innerHTML = "";
+    registeredWorkers.forEach(function(w) {
+      var opt = document.createElement("option");
+      opt.value = w.fullName;
+      workerDatalist.appendChild(opt);
+    });
+
+    var companyDatalist = document.getElementById("companySuggestions");
+    companyDatalist.innerHTML = "";
+    (response.companies || []).forEach(function(comp) {
+      var opt = document.createElement("option");
+      opt.value = comp;
+      companyDatalist.appendChild(opt);
+    });
+  }
+
+  function handleWorkerSelection() {
+    var enteredValue = document.getElementById("inputName").value.trim().toLowerCase();
+    var matched = registeredWorkers.find(function(w) {
+      return w.fullName.toLowerCase() === enteredValue;
+    });
+    if (matched && matched.company) {
+      document.getElementById("inputCompany").value = matched.company;
+    }
+  }
+
+  function displayAlert(message, isSuccess) {
+    var box = document.getElementById("statusAlert");
+    box.className = "alert-box " + (isSuccess ? "ok" : "bad");
+    box.innerText = message;
+    setTimeout(function() {
+      box.className = "alert-box";
+    }, 7000);
+  }
+
+  function switchTab(tabName) {
+    var views = ["viewCheckIn", "viewCheckOut", "viewBadges", "viewHistory", "viewVisitors"];
+    var buttons = ["tabBtn1", "tabBtn2", "tabBtn3", "tabBtn4", "tabBtn5"];
+    
+    views.forEach(function(v) {
+      document.getElementById(v).style.display = "none";
+    });
+    buttons.forEach(function(b) {
+      document.getElementById(b).classList.remove("active");
+    });
+
+    // Pause scanner if leaving tab 1
+    if (tabName !== "in" && isScannerRunning) {
+      stopLiveScanner();
+    }
+
+    if (tabName === "in") {
+      document.getElementById("viewCheckIn").style.display = "block";
+      document.getElementById("tabBtn1").classList.add("active");
+      loadSuggestions();
+    } else if (tabName === "out") {
+      document.getElementById("viewCheckOut").style.display = "block";
+      document.getElementById("tabBtn2").classList.add("active");
+      document.getElementById("inputSearchWorker").value = "";
+      closeSignaturePanel();
+      fetchWorkersOnSite();
+    } else if (tabName === "badges") {
+      document.getElementById("viewBadges").style.display = "block";
+      document.getElementById("tabBtn3").classList.add("active");
+      loadBadgesList();
+    } else if (tabName === "hist") {
+      document.getElementById("viewHistory").style.display = "block";
+      document.getElementById("tabBtn4").classList.add("active");
+      fetchHistory();
+    } else if (tabName === "visitors") {
+      document.getElementById("viewVisitors").style.display = "block";
+      document.getElementById("tabBtn5").classList.add("active");
+      setTimeout(initializeVisitorCanvasDimensions, 50);
+      fetchVisitorsHistory();
+    }
+  }
+
+  /* ==================== LIVE IN-APP CAMERA SCANNER ==================== */
+
+  function toggleLiveScanner() {
+    if (isScannerRunning) {
+      stopLiveScanner();
+    } else {
+      startLiveScanner();
+    }
+  }
+
+  function startLiveScanner() {
+    const container = document.getElementById("reader-container");
+    const btn = document.getElementById("btnToggleCam");
+    container.style.display = "block";
+    btn.classList.add("active");
+    btn.innerText = "⏹️ CLOSE LIVE QR SCANNER";
+
+    html5QrCode = new Html5Qrcode("qr-reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 15, qrbox: { width: 220, height: 220 } },
+      onScanSuccess,
+      function(errorMessage) {
+        // Continuous scan feedback (ignore noise)
+      }
+    ).then(() => {
+      isScannerRunning = true;
+    }).catch(err => {
+      displayAlert("Camera permission error: " + err, false);
+      stopLiveScanner();
+    });
+  }
+
+  function stopLiveScanner() {
+    const container = document.getElementById("reader-container");
+    const btn = document.getElementById("btnToggleCam");
+    if (html5QrCode && isScannerRunning) {
+      html5QrCode.stop().then(() => {
+        html5QrCode.clear();
+        isScannerRunning = false;
+        container.style.display = "none";
+        btn.classList.remove("active");
+        btn.innerText = "📷 OPEN LIVE QR SCANNER";
+      }).catch(err => {
+        isScannerRunning = false;
+        container.style.display = "none";
+        btn.classList.remove("active");
+        btn.innerText = "📷 OPEN LIVE QR SCANNER";
+      });
+    } else {
+      container.style.display = "none";
+      btn.classList.remove("active");
+      btn.innerText = "📷 OPEN LIVE QR SCANNER";
+      isScannerRunning = false;
+    }
+  }
+
+  async function onScanSuccess(decodedText) {
+    if (isProcessingScan) return;
+    isProcessingScan = true;
+
+    var workerName = "";
+    var workerCompany = "";
+
+    // Parse URL-style QR: ?name=X&company=Y or direct params
+    try {
+      if (decodedText.indexOf("name=") !== -1) {
+        var queryPart = decodedText.split("?")[1] || decodedText;
+        var params = new URLSearchParams(queryPart);
+        workerName = params.get("name") || "";
+        workerCompany = params.get("company") || "";
+      } else if (decodedText.indexOf("|") !== -1) {
+        var parts = decodedText.split("|");
+        workerName = parts[0];
+        workerCompany = parts[1] || "";
+      } else {
+        workerName = decodedText.trim();
+      }
+    } catch (e) {
+      workerName = decodedText.trim();
+    }
+
+    if (!workerName) {
+      displayAlert("Invalid QR Code content", false);
+      setTimeout(() => { isProcessingScan = false; }, 1500);
+      return;
+    }
+
+    displayAlert("Validating badge: " + workerName + "...", true);
+
+    const res = await callGasApi("handleQrScan", {
+      data: { fullName: workerName, company: workerCompany }
+    });
+
+    if (!res || !res.success) {
+      playErrorBeep();
+      displayAlert(res ? res.message : "Access verification failed", false);
+      setTimeout(() => { isProcessingScan = false; }, 2000);
+      return;
+    }
+
+    playSuccessBeep();
+
+    if (res.action === "checked_in") {
+      displayAlert("✅ CHECK-IN CONFIRMED: " + res.worker.fullName + " (" + res.worker.company + ")", true);
+      // Scanner stays open and ready for the next worker in line!
+      setTimeout(() => { isProcessingScan = false; }, 1800);
+    } else if (res.action === "check_out_needed") {
+      displayAlert("🔴 " + res.worker.fullName + " is on site. Opening signature...", true);
+      stopLiveScanner();
+      switchTab("out");
+      selectedWorker = res.worker;
+      document.getElementById("targetWorkerName").innerText = res.worker.fullName;
+      document.getElementById("targetWorkerDetails").innerText = "Company: " + res.worker.company + " | Check-in: " + res.worker.checkInTime;
+      document.getElementById("listContainer").style.display = "none";
+      document.getElementById("signatureModal").style.display = "block";
+      setTimeout(initializeCanvasDimensions, 80);
+      isProcessingScan = false;
+    }
+  }
+
+  /* ==================== MANUAL CHECK-IN ==================== */
+
+  async function submitCheckIn(e) {
+    e.preventDefault();
+    
+    var enteredName = document.getElementById("inputName").value.trim();
+    var enteredCompany = document.getElementById("inputCompany").value.trim();
+
+    var isKnown = registeredWorkers.some(function(w) {
+      return w.fullName.toLowerCase() === enteredName.toLowerCase();
+    });
+
+    if (!isKnown && registeredWorkers.length > 0) {
+      playErrorBeep();
+      displayAlert("ACCESS DENIED: '" + enteredName + "' is not registered in BADGES directory.", false);
+      return;
+    }
+
+    var btn = document.getElementById("btnSaveIn");
+    btn.disabled = true;
+    btn.innerText = "Verifying & Saving...";
+
+    const response = await callGasApi("registerCheckIn", {
+      data: { fullName: enteredName, company: enteredCompany }
+    });
+
+    btn.disabled = false;
+    btn.innerText = "CONFIRM CHECK-IN";
+
+    if (response && response.success) {
+      playSuccessBeep();
+      displayAlert(response.message, true);
+      document.getElementById("formCheckIn").reset();
+      loadSuggestions();
+    } else {
+      playErrorBeep();
+      displayAlert(response ? response.message : "Error saving check-in", false);
+    }
+  }
+
+  /* ==================== CHECK-OUT ==================== */
+
+  async function fetchWorkersOnSite() {
+    var counter = document.getElementById("workerCounter");
+    var container = document.getElementById("workerList");
+    counter.innerText = "Loading personnel currently on site...";
+    container.innerHTML = "";
+
+    const response = await callGasApi("getWorkersOnSite");
+    if (!response || !response.success) {
+      counter.innerText = "";
+      container.innerHTML = "<p style='color: red;'>" + (response ? response.message : "Error") + "</p>";
+      return;
+    }
+    currentWorkerList = response.data || [];
+    filterWorkers();
+  }
+
+  function filterWorkers() {
+    var query = document.getElementById("inputSearchWorker").value.toLowerCase().trim();
+    var container = document.getElementById("workerList");
+    var counter = document.getElementById("workerCounter");
+
+    if (currentWorkerList.length === 0) {
+      counter.innerText = "No personnel currently registered on site.";
+      container.innerHTML = "";
+      return;
+    }
+
+    var filtered = currentWorkerList.filter(function(worker) {
+      var matchName = worker.fullName.toLowerCase().indexOf(query) !== -1;
+      var matchCompany = worker.company.toLowerCase().indexOf(query) !== -1;
+      return matchName || matchCompany;
+    });
+
+    counter.innerText = "Personnel on site (" + filtered.length + " of " + currentWorkerList.length + "):";
+
+    if (filtered.length === 0) {
+      container.innerHTML = "<p style='color: #64748b; font-size: 0.9rem; padding: 10px 0;'>No matching records found.</p>";
+      return;
+    }
+
+    var html = "";
+    filtered.forEach(function(worker) {
+      html += '<div class="worker-card">' +
+        '<div class="worker-info">' +
+          '<h3>' + worker.fullName + '</h3>' +
+          '<p>' + worker.company + ' &bull; Check-in: <strong>' + worker.checkInTime + '</strong></p>' +
+        '</div>' +
+        '<button type="button" class="btn-select-out" onclick="openSignaturePanelById(\'' + worker.id + '\')">Check-Out / Sign</button>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  function openSignaturePanelById(recordId) {
+    selectedWorker = currentWorkerList.find(function(w) { return w.id === recordId; });
+    if (!selectedWorker) return;
+
+    document.getElementById("targetWorkerName").innerText = selectedWorker.fullName;
+    document.getElementById("targetWorkerDetails").innerText = "Company: " + selectedWorker.company + " | Check-in: " + selectedWorker.checkInTime;
+    
+    document.getElementById("listContainer").style.display = "none";
+    document.getElementById("signatureModal").style.display = "block";
+
+    setTimeout(initializeCanvasDimensions, 50);
+  }
+
+  function closeSignaturePanel() {
+    selectedWorker = null;
+    document.getElementById("signatureModal").style.display = "none";
+    document.getElementById("listContainer").style.display = "block";
+  }
+
+  async function submitCheckOut() {
+    if (!hasDrawnSignature) {
+      alert("A physical signature is required on screen before submitting check-out.");
+      return;
+    }
+
+    var btn = document.getElementById("btnConfirmCheckOut");
+    btn.disabled = true;
+    btn.innerText = "Submitting check-out & signature...";
+
+    const response = await callGasApi("registerCheckOut", {
+      data: {
+        id: selectedWorker.id,
+        signatureBase64: canvas.toDataURL("image/png")
+      }
+    });
+
+    btn.disabled = false;
+    btn.innerText = "CONFIRM CHECK-OUT & SIGNATURE";
+
+    if (response && response.success) {
+      playSuccessBeep();
+      displayAlert(response.message, true);
+      closeSignaturePanel();
+      fetchWorkersOnSite();
+    } else {
+      playErrorBeep();
+      displayAlert(response ? response.message : "Error saving check-out", false);
+    }
+  }
+
+  /* ==================== BADGES ==================== */
+
+  async function submitNewBadge(e) {
+    e.preventDefault();
+    var btn = document.getElementById("btnCreateBadge");
+    btn.disabled = true;
+    btn.innerText = "Generating Badge & QR...";
+
+    const res = await callGasApi("createWorkerBadge", {
+      data: {
+        fullName: document.getElementById("badgeInputName").value,
+        company: document.getElementById("badgeInputCompany").value
+      }
+    });
+
+    btn.disabled = false;
+    btn.innerText = "CREATE WORKER BADGE";
+
+    if (res && res.success) {
+      displayAlert(res.message, true);
+      document.getElementById("formNewBadge").reset();
+      loadBadgesList();
+      loadSuggestions();
+    } else {
+      displayAlert(res ? res.message : "Error creating badge", false);
+    }
+  }
+
+  async function loadBadgesList() {
+    var container = document.getElementById("badgesContainer");
+    container.innerHTML = "<p style='text-align: center; color: #64748b; padding: 20px 0;'>Loading issued badges...</p>";
+
+    const res = await callGasApi("getAllWorkers");
+    if (!res || !res.success) {
+      container.innerHTML = "<p style='color: red; text-align: center;'>" + (res ? res.message : "Error") + "</p>";
+      return;
+    }
+
+    allIssuedBadges = res.workers || [];
+    if (allIssuedBadges.length === 0) {
+      container.innerHTML = "<p style='text-align: center; color: #64748b; padding: 20px 0;'>No badges created yet. Add a worker above to generate one.</p>";
+      return;
+    }
+
+    var html = "";
+    allIssuedBadges.forEach(function(w, idx) {
+      var badgePayload = w.fullName + "|" + w.company;
+      var qrImgUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=2&data=" + encodeURIComponent(badgePayload);
+
+      html += '<div class="badge-item-card">' +
+        '<div class="badge-qr-box">' +
+          '<img src="' + qrImgUrl + '" alt="QR">' +
+        '</div>' +
+        '<div class="badge-details">' +
+          '<h3>' + w.fullName + '</h3>' +
+          '<p>' + w.company + '</p>' +
+          '<span>ID: ' + w.id + '</span>' +
+        '</div>' +
+        '<div class="badge-actions-col">' +
+          '<button type="button" class="btn-print-single" onclick="openPrintModal(' + idx + ')">Print</button>' +
+          '<button type="button" class="btn-delete-badge" onclick="confirmDeleteBadge(\'' + w.id + '\', \'' + w.fullName.replace(/'/g, "") + '\')">Delete</button>' +
+        '</div>' +
+      '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  async function confirmDeleteBadge(workerId, workerName) {
+    if (!confirm("Are you sure you want to delete the badge for " + workerName + "?")) {
+      return;
+    }
+    
+    displayAlert("Deleting badge for " + workerName + "...", true);
+    const res = await callGasApi("deleteWorkerBadge", { workerId: workerId });
+    if (res && res.success) {
+      displayAlert(res.message, true);
+      loadBadgesList();
+      loadSuggestions();
+    } else {
+      displayAlert(res ? res.message : "Error deleting badge", false);
+    }
+  }
+
+  function openPrintModal(index) {
+    var worker = allIssuedBadges[index];
+    if (!worker) return;
+    var badgePayload = worker.fullName + "|" + worker.company;
+    var qrImgUrl = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=2&data=" + encodeURIComponent(badgePayload);
+
+    document.getElementById("printModalQr").src = qrImgUrl;
+    document.getElementById("printModalName").innerText = worker.fullName;
+    document.getElementById("printModalCompany").innerText = worker.company;
+    document.getElementById("printModalId").innerText = worker.id;
+    document.getElementById("badgePrintModal").style.display = "flex";
+  }
+
+  function closePrintModal() {
+    document.getElementById("badgePrintModal").style.display = "none";
+  }
+
+  /* ==================== HISTORY ==================== */
+
+  async function fetchHistory() {
+    var container = document.getElementById("historyRecordsContainer");
+    container.innerHTML = "<p style='font-size: 0.85rem; color: #64748b; text-align: center; padding: 15px 0;'>Loading access history...</p>";
+
+    const response = await callGasApi("getAccessHistory");
+    if (!response || !response.success) {
+      container.innerHTML = "<p style='color: red; text-align: center; padding: 15px 0;'>" + (response ? response.message : "Error") + "</p>";
+      return;
+    }
+    rawHistoryList = response.records || [];
+    filterHistory();
+  }
+
+  function filterHistory() {
+    var fromDate = document.getElementById("historyDateFrom").value.trim();
+    var toDate = document.getElementById("historyDateTo").value.trim();
+    var query = document.getElementById("historyTextSearch").value.toLowerCase().trim();
+    var container = document.getElementById("historyRecordsContainer");
+
+    currentFilteredHistory = rawHistoryList.filter(function(item) {
+      var matchDate = true;
+      if (fromDate !== "" && item.date < fromDate) matchDate = false;
+      if (toDate !== "" && item.date > toDate) matchDate = false;
+
+      var matchName = item.fullName.toLowerCase().indexOf(query) !== -1;
+      var matchCompany = item.company.toLowerCase().indexOf(query) !== -1;
+
+      return matchDate && (matchName || matchCompany);
+    });
+
+    document.getElementById("kpiCount").innerText = currentFilteredHistory.length;
+    var totalHoursCalculated = currentFilteredHistory.reduce(function(acc, curr) {
+      return acc + (Number(curr.totalHours) || 0);
+    }, 0);
+    document.getElementById("kpiHours").innerText = totalHoursCalculated.toFixed(2) + " h";
+
+    if (currentFilteredHistory.length === 0) {
+      container.innerHTML = "<p style='font-size: 0.85rem; color: #64748b; text-align: center; padding: 15px 0;'>No access records found for the selected criteria.</p>";
+      return;
+    }
+
+    var html = "";
+    currentFilteredHistory.forEach(function(rec) {
+      var isCompleted = rec.status === "Completed";
+      var isAutoClosed = rec.status === "Auto-Closed";
+      
+      var badgeClass = isCompleted 
+        ? "status-completed" 
+        : (isAutoClosed ? "status-autoclosed" : "status-onsite");
+      
+      var signatureBtn = "";
+      if (rec.signatureUrl && rec.signatureUrl !== "" && rec.signatureUrl.indexOf("AUTO-CLOSED") === -1) {
+        signatureBtn = '<button type="button" class="btn-view-sign" onclick="openSignatureViewer(\'' + rec.signatureUrl + '\', \'' + rec.fullName.replace(/'/g, "") + '\', \'' + rec.date + ' - ' + rec.company.replace(/'/g, "") + '\')">View Signature</button>';
+      } else if (isAutoClosed) {
+        signatureBtn = '<span style="font-size: 0.75rem; color: #ea580c; font-weight: bold; display: inline-block; margin-top: 6px;">⚠️ Auto-Closed (No Signature)</span>';
+      }
+
+      html += '<div class="history-card">' +
+        '<div class="history-card-header">' +
+          '<h3>' + rec.fullName + '</h3>' +
+          '<span class="badge-status ' + badgeClass + '">' + rec.status + '</span>' +
+        '</div>' +
+        '<div class="history-details">' +
+          '<p><strong>Company:</strong> ' + rec.company + '</p>' +
+          '<p><strong>Date:</strong> ' + rec.date + '</p>' +
+          '<p><strong>Hours:</strong> In: ' + rec.checkInTime + ' | Out: ' + (rec.checkOutTime || '--:--:--') + ' | Total: <strong>' + rec.totalHours.toFixed(2) + ' h</strong></p>' +
+        '</div>' +
+        signatureBtn +
+      '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  async function triggerManualAutoClose() {
+    if (!confirm("Are you sure you want to close ALL currently open check-outs? This will calculate hours up to cutoff time.")) {
+      return;
+    }
+
+    displayAlert("Running daily system auto-close...", true);
+    const res = await callGasApi("autoCloseOpenCheckouts");
+    if (res && res.success) {
+      playSuccessBeep();
+      displayAlert(res.message, true);
+      fetchHistory();
+    } else {
+      playErrorBeep();
+      displayAlert(res ? res.message : "Auto-close error", false);
+    }
+  }
+
+  function exportFilteredHistoryToExcel() {
+    if (!currentFilteredHistory || currentFilteredHistory.length === 0) {
+      alert("There are no records to export. Please adjust your filters.");
+      return;
+    }
+
+    var fromDate = document.getElementById("historyDateFrom").value.trim();
+    var toDate = document.getElementById("historyDateTo").value.trim();
+    var queryText = document.getElementById("historyTextSearch").value.trim();
+
+    var csvContent = "\uFEFF";
+    csvContent += "Record ID,Date,Full Name,Company,Check-In Time,Check-Out Time,Total Hours,Status,Signature URL\r\n";
+
+    var sumHours = 0;
+
+    currentFilteredHistory.forEach(function(row) {
+      var id = '"' + (row.id || "").replace(/"/g, '""') + '"';
+      var date = '"' + (row.date || "").replace(/"/g, '""') + '"';
+      var name = '"' + (row.fullName || "").replace(/"/g, '""') + '"';
+      var company = '"' + (row.company || "").replace(/"/g, '""') + '"';
+      var checkIn = '"' + (row.checkInTime || "").replace(/"/g, '""') + '"';
+      var checkOut = '"' + (row.checkOutTime || "").replace(/"/g, '""') + '"';
+      var hours = Number(row.totalHours) || 0;
+      sumHours += hours;
+      var status = '"' + (row.status || "").replace(/"/g, '""') + '"';
+      var signUrl = '"' + (row.signatureUrl || "").replace(/"/g, '""') + '"';
+
+      csvContent += [id, date, name, company, checkIn, checkOut, hours.toFixed(2), status, signUrl].join(",") + "\r\n";
+    });
+
+    csvContent += "\r\n";
+    csvContent += '"TOTAL RECORDS",' + currentFilteredHistory.length + ',"TOTAL HOURS",' + sumHours.toFixed(2) + ' h,,,,,\r\n';
+
+    var fileName = "Access_Report";
+    if (queryText !== "") {
+      fileName += "_" + queryText.replace(/[^a-zA-Z0-9]/g, "_");
+    }
+    if (fromDate !== "" && toDate !== "") {
+      if (fromDate === toDate) {
+        fileName += "_" + fromDate;
+      } else {
+        fileName += "_From_" + fromDate + "_To_" + toDate;
+      }
+    } else if (fromDate !== "") {
+      fileName += "_From_" + fromDate;
+    } else if (toDate !== "") {
+      fileName += "_To_" + toDate;
+    } else {
+      fileName += "_All_Dates";
+    }
+    fileName += ".csv";
+
+    var blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    var link = document.createElement("a");
+    if (link.download !== undefined) {
+      var url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", fileName);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
+
+  /* ==================== VISITORS LOGIC ==================== */
+
+  async function submitVisitorEntry(e) {
+    e.preventDefault();
+
+    if (!hasDrawnVisitorSignature) {
+      alert("A physical signature on screen is required for visitors.");
+      return;
+    }
+
+    var btn = document.getElementById("btnSaveVisitor");
+    btn.disabled = true;
+    btn.innerText = "Registering Visitor...";
+
+    const response = await callGasApi("registerVisitor", {
+      data: {
+        fullName: document.getElementById("visitorFullName").value.trim(),
+        company: document.getElementById("visitorCompany").value.trim(),
+        signatureBase64: visitorCanvas.toDataURL("image/png")
+      }
+    });
+
+    btn.disabled = false;
+    btn.innerText = "CONFIRM VISITOR ENTRY";
+
+    if (response && response.success) {
+      playSuccessBeep();
+      displayAlert(response.message, true);
+      document.getElementById("formNewVisitor").reset();
+      clearVisitorCanvas();
+      fetchVisitorsHistory();
+    } else {
+      playErrorBeep();
+      displayAlert(response ? response.message : "Visitor registration failed", false);
+    }
+  }
+
+  async function fetchVisitorsHistory() {
+    var container = document.getElementById("visitorsListContainer");
+    var filterDate = document.getElementById("visitorFilterDate").value.trim();
+    container.innerHTML = "<p style='font-size: 0.85rem; color: #64748b; text-align: center; padding: 15px 0;'>Loading visitor log...</p>";
+
+    const response = await callGasApi("getVisitorsHistory", { targetDate: filterDate });
+    if (!response || !response.success) {
+      container.innerHTML = "<p style='color: red; text-align: center; padding: 15px 0;'>" + (response ? response.message : "Error") + "</p>";
+      return;
+    }
+
+    currentVisitorsList = response.records || [];
+    if (currentVisitorsList.length === 0) {
+      container.innerHTML = "<p style='font-size: 0.85rem; color: #64748b; text-align: center; padding: 15px 0;'>No visitor records found for this date.</p>";
+      return;
+    }
+
+    var html = "";
+    currentVisitorsList.forEach(function(item) {
+      var sigBtn = "";
+      if (item.signatureUrl && item.signatureUrl !== "") {
+        sigBtn = '<button type="button" class="btn-view-sign" onclick="openSignatureViewer(\'' + item.signatureUrl + '\', \'' + item.fullName.replace(/'/g, "") + '\', \'' + item.date + ' - ' + item.company.replace(/'/g, "") + ' (Visitor)\')">View Signature</button>';
+      }
+
+      html += '<div class="history-card">' +
+        '<div class="history-card-header">' +
+          '<h3>' + item.fullName + '</h3>' +
+          '<span class="badge-status status-visitor">Visitor</span>' +
+        '</div>' +
+        '<div class="history-details">' +
+          '<p><strong>Company:</strong> ' + item.company + '</p>' +
+          '<p><strong>Date:</strong> ' + item.date + ' &bull; <strong>Time In:</strong> ' + item.timeIn + '</p>' +
+        '</div>' +
+        sigBtn +
+      '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  function exportVisitorsToExcel() {
+    if (!currentVisitorsList || currentVisitorsList.length === 0) {
+      alert("There are no visitor records to export. Please select another date or click 'All'.");
+      return;
+    }
+
+    var filterDate = document.getElementById("visitorFilterDate").value.trim();
+
+    var csvContent = "\uFEFF";
+    csvContent += "Visitor ID,Date,Full Name,Company,Time In,Signature URL\r\n";
+
+    currentVisitorsList.forEach(function(row) {
+      var id = '"' + (row.id || "").replace(/"/g, '""') + '"';
+      var date = '"' + (row.date || "").replace(/"/g, '""') + '"';
+      var name = '"' + (row.fullName || "").replace(/"/g, '""') + '"';
+      var company = '"' + (row.company || "").replace(/"/g, '""') + '"';
+      var timeIn = '"' + (row.timeIn || "").replace(/"/g, '""') + '"';
+      var signUrl = '"' + (row.signatureUrl || "").replace(/"/g, '""') + '"';
+
+      csvContent += [id, date, name, company, timeIn, signUrl].join(",") + "\r\n";
+    });
+
+    csvContent += "\r\n";
+    csvContent += '"TOTAL VISITORS",' + currentVisitorsList.length + ',,,,\r\n';
+
+    var fileName = "Visitors_Log";
+    if (filterDate !== "") {
+      fileName += "_" + filterDate;
+    } else {
+      fileName += "_All_Dates";
+    }
+    fileName += ".csv";
+
+    var blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    var link = document.createElement("a");
+    if (link.download !== undefined) {
+      var url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", fileName);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
+
+  async function openSignatureViewer(signatureUrl, workerName, detailsText) {
+    document.getElementById("viewerWorkerName").innerText = workerName;
+    document.getElementById("viewerDetails").innerText = detailsText;
+    var imgContainer = document.getElementById("viewerImageContainer");
+    imgContainer.innerHTML = "<p style='padding: 20px 0; font-size: 0.9rem; color: #64748b;'>Retrieving signature from Drive...</p>";
+    document.getElementById("signatureViewerModal").style.display = "flex";
+
+    const response = await callGasApi("getSignatureImageBase64", { signatureUrl: signatureUrl });
+    if (response && response.success) {
+      imgContainer.innerHTML = '<img src="' + response.dataUri + '" alt="Signature">';
+    } else {
+      imgContainer.innerHTML = "<p style='color: red; padding: 15px 0;'>" + (response ? response.message : "Error") + "</p>";
+    }
+  }
+
+  function closeSignatureViewer() {
+    document.getElementById("signatureViewerModal").style.display = "none";
+    document.getElementById("viewerImageContainer").innerHTML = "";
+  }
+
+  // INITIALIZATION
+  setDatePreset('today');
+  setVisitorPreset('today');
+  initCanvas();
+  initVisitorCanvas();
+  loadSuggestions();
+</script>
+
+</body>
+</html>
