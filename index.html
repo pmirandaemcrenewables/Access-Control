@@ -590,7 +590,6 @@
 
     <!-- TAB 1: CHECK-IN -->
     <div id="viewCheckIn">
-      <!-- LIVE CAMERA SCANNER (IN-APP ZERO TABS) -->
       <div class="scanner-card">
         <button type="button" id="btnToggleCam" class="btn-toggle-cam" onclick="toggleLiveScanner()">
           📷 OPEN LIVE QR SCANNER
@@ -790,7 +789,6 @@
         </form>
       </div>
 
-      <!-- VISITORS HISTORY -->
       <div class="history-controls">
         <label for="visitorFilterDate" style="margin-bottom: 6px;">Filter Visitor Log by Date</label>
         <div style="display: flex; gap: 8px;">
@@ -847,7 +845,6 @@
   // PEGA AQUÍ LA URL DE TU APPS SCRIPT (TERMINADA EN /exec)
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbymf6u597Ov10wYtSek66LHD7Yo9A4_GCtdAqUr4v2t7a0Y9SF3CvXkYNw_aIcfosHmwQ/exec";
 
-  // ASYNC API BRIDGE TO GOOGLE APPS SCRIPT
   async function callGasApi(action, data = {}) {
     try {
       const response = await fetch(GAS_API_URL, {
@@ -879,10 +876,12 @@
   var hasDrawnVisitorSignature = false;
   var currentVisitorsList = [];
 
-  // LIVE SCANNER STATE
+  // LIVE SCANNER STATE (CONCURRENCY PROTECTED)
   var html5QrCode = null;
   var isScannerRunning = false;
+  var isStoppingScanner = false;
   var isProcessingScan = false;
+  var alertTimer = null;
 
   function playSuccessBeep() {
     try {
@@ -1127,28 +1126,34 @@
 
   function displayAlert(message, isSuccess) {
     var box = document.getElementById("statusAlert");
+    if (!box) return;
     box.className = "alert-box " + (isSuccess ? "ok" : "bad");
     box.innerText = message;
-    setTimeout(function() {
+    box.style.display = "block";
+    
+    if (alertTimer) clearTimeout(alertTimer);
+    alertTimer = setTimeout(function() {
+      box.style.display = "none";
       box.className = "alert-box";
     }, 7000);
   }
 
-  function switchTab(tabName) {
+  async function switchTab(tabName) {
+    if (tabName !== "in" && isScannerRunning) {
+      await stopLiveScanner();
+    }
+
     var views = ["viewCheckIn", "viewCheckOut", "viewBadges", "viewHistory", "viewVisitors"];
     var buttons = ["tabBtn1", "tabBtn2", "tabBtn3", "tabBtn4", "tabBtn5"];
     
     views.forEach(function(v) {
-      document.getElementById(v).style.display = "none";
+      var el = document.getElementById(v);
+      if (el) el.style.display = "none";
     });
     buttons.forEach(function(b) {
-      document.getElementById(b).classList.remove("active");
+      var el = document.getElementById(b);
+      if (el) el.classList.remove("active");
     });
-
-    // Pause scanner if leaving tab 1
-    if (tabName !== "in" && isScannerRunning) {
-      stopLiveScanner();
-    }
 
     if (tabName === "in") {
       document.getElementById("viewCheckIn").style.display = "block";
@@ -1176,7 +1181,7 @@
     }
   }
 
-  /* ==================== LIVE IN-APP CAMERA SCANNER ==================== */
+  /* ==================== LIVE SCANNER ==================== */
 
   function toggleLiveScanner() {
     if (isScannerRunning) {
@@ -1187,6 +1192,8 @@
   }
 
   function startLiveScanner() {
+    if (isScannerRunning || isStoppingScanner) return;
+    
     const container = document.getElementById("reader-container");
     const btn = document.getElementById("btnToggleCam");
     container.style.display = "block";
@@ -1198,9 +1205,7 @@
       { facingMode: "environment" },
       { fps: 15, qrbox: { width: 220, height: 220 } },
       onScanSuccess,
-      function(errorMessage) {
-        // Continuous scan feedback (ignore noise)
-      }
+      function(errorMessage) {}
     ).then(() => {
       isScannerRunning = true;
     }).catch(err => {
@@ -1209,27 +1214,34 @@
     });
   }
 
-  function stopLiveScanner() {
+  async function stopLiveScanner() {
     const container = document.getElementById("reader-container");
     const btn = document.getElementById("btnToggleCam");
-    if (html5QrCode && isScannerRunning) {
-      html5QrCode.stop().then(() => {
+
+    if (html5QrCode && isScannerRunning && !isStoppingScanner) {
+      isStoppingScanner = true;
+      try {
+        await html5QrCode.stop();
         html5QrCode.clear();
+      } catch (err) {
+        // Safe fail
+      } finally {
         isScannerRunning = false;
-        container.style.display = "none";
-        btn.classList.remove("active");
-        btn.innerText = "📷 OPEN LIVE QR SCANNER";
-      }).catch(err => {
-        isScannerRunning = false;
-        container.style.display = "none";
-        btn.classList.remove("active");
-        btn.innerText = "📷 OPEN LIVE QR SCANNER";
-      });
+        isStoppingScanner = false;
+        if (container) container.style.display = "none";
+        if (btn) {
+          btn.classList.remove("active");
+          btn.innerText = "📷 OPEN LIVE QR SCANNER";
+        }
+      }
     } else {
-      container.style.display = "none";
-      btn.classList.remove("active");
-      btn.innerText = "📷 OPEN LIVE QR SCANNER";
       isScannerRunning = false;
+      isStoppingScanner = false;
+      if (container) container.style.display = "none";
+      if (btn) {
+        btn.classList.remove("active");
+        btn.innerText = "📷 OPEN LIVE QR SCANNER";
+      }
     }
   }
 
@@ -1240,7 +1252,6 @@
     var workerName = "";
     var workerCompany = "";
 
-    // Parse URL-style QR: ?name=X&company=Y or direct params
     try {
       if (decodedText.indexOf("name=") !== -1) {
         var queryPart = decodedText.split("?")[1] || decodedText;
@@ -1270,10 +1281,13 @@
       data: { fullName: workerName, company: workerCompany }
     });
 
+    // Close camera cleanly so screen never freezes
+    await stopLiveScanner();
+
     if (!res || !res.success) {
       playErrorBeep();
       displayAlert(res ? res.message : "Access verification failed", false);
-      setTimeout(() => { isProcessingScan = false; }, 2000);
+      isProcessingScan = false;
       return;
     }
 
@@ -1281,18 +1295,23 @@
 
     if (res.action === "checked_in") {
       displayAlert("✅ CHECK-IN CONFIRMED: " + res.worker.fullName + " (" + res.worker.company + ")", true);
-      // Scanner stays open and ready for the next worker in line!
-      setTimeout(() => { isProcessingScan = false; }, 1800);
+      // Guarantee Check-In form remains fully visible and ready
+      document.getElementById("viewCheckIn").style.display = "block";
+      document.getElementById("formCheckIn").reset();
+      loadSuggestions();
+      isProcessingScan = false;
     } else if (res.action === "check_out_needed") {
-      displayAlert("🔴 " + res.worker.fullName + " is on site. Opening signature...", true);
-      stopLiveScanner();
-      switchTab("out");
+      displayAlert("🔴 " + res.worker.fullName + " is on site. Ready for signature.", true);
+      await switchTab("out");
       selectedWorker = res.worker;
       document.getElementById("targetWorkerName").innerText = res.worker.fullName;
       document.getElementById("targetWorkerDetails").innerText = "Company: " + res.worker.company + " | Check-in: " + res.worker.checkInTime;
       document.getElementById("listContainer").style.display = "none";
       document.getElementById("signatureModal").style.display = "block";
       setTimeout(initializeCanvasDimensions, 80);
+      isProcessingScan = false;
+    } else {
+      displayAlert(res.message || "Record processed successfully", true);
       isProcessingScan = false;
     }
   }
