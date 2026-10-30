@@ -3,8 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Jobsite Access Control</title>
+  
+  <!-- NOMBRE E ICONO DE APLICACIÓN MÓVIL NATIVA -->
+  <title>Access Control</title>
   <meta name="apple-mobile-web-app-title" content="Access Control">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/942/942748.png">
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/942/942748.png">
+
   <!-- QR live streaming engine -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
@@ -567,7 +574,7 @@
 
 <div class="wrapper">
   <div class="top-bar">
-    <h1>JOBSITE ACCESS CONTROL</h1>
+    <h1>ACCESS CONTROL</h1>
     <div id="badgeDateToday" class="date-badge"></div>
     <script>
       (function() {
@@ -1282,7 +1289,6 @@
       data: { fullName: workerName, company: workerCompany }
     });
 
-    // Close camera cleanly so screen never freezes
     await stopLiveScanner();
 
     if (!res || !res.success) {
@@ -1296,7 +1302,6 @@
 
     if (res.action === "checked_in") {
       displayAlert("✅ CHECK-IN CONFIRMED: " + res.worker.fullName + " (" + res.worker.company + ")", true);
-      // Guarantee Check-In form remains fully visible and ready
       document.getElementById("viewCheckIn").style.display = "block";
       document.getElementById("formCheckIn").reset();
       loadSuggestions();
